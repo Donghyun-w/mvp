@@ -1,5 +1,5 @@
 {
-  "name": "task-manager-mvp",
+  "name": "task-manager-supabase",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

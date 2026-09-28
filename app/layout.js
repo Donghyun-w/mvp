@@ -2,7 +2,7 @@ import "./globals.css";
 
 export const metadata = {
   title: "My Task Manager",
-  description: "간단한 대학생 과제 관리 MVP"
+  description: "Supabase와 연결된 대학생 과제 관리 MVP"
 };
 
 export default function RootLayout({ children }) {

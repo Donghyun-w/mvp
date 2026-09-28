@@ -1,53 +1,109 @@
 "use client";
 
-import { useState } from "react";
-
-const initialTasks = [
-  { id: 1, subject: "C언어", title: "배열 과제", due: "2026-09-30", done: false },
-  { id: 2, subject: "수학", title: "적분 문제 풀이", due: "2026-10-02", done: false },
-  { id: 3, subject: "영어", title: "Essay 작성", due: "2026-10-05", done: true }
-];
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function Home() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState([]);
   const [subject, setSubject] = useState("");
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const addTask = (e) => {
+  async function loadTasks() {
+    setLoading(true);
+    setError("");
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .order("done", { ascending: true })
+      .order("due", { ascending: true });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setTasks(data ?? []);
+    }
+
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  async function addTask(e) {
     e.preventDefault();
-    if (!subject.trim() || !title.trim() || !due) return;
 
-    setTasks([
-      ...tasks,
-      {
-        id: Date.now(),
+    if (!subject.trim() || !title.trim() || !due) {
+      setError("과목, 과제 이름, 마감일을 모두 입력해주세요.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({
         subject: subject.trim(),
         title: title.trim(),
         due,
         done: false
-      }
-    ]);
+      })
+      .select()
+      .single();
 
-    setSubject("");
-    setTitle("");
-    setDue("");
-  };
+    if (error) {
+      setError(error.message);
+    } else {
+      setTasks((current) => [...current, data]);
+      setSubject("");
+      setTitle("");
+      setDue("");
+    }
 
-  const toggleTask = (id) => {
-    setTasks(tasks.map((task) =>
-      task.id === id ? { ...task, done: !task.done } : task
-    ));
-  };
+    setSaving(false);
+  }
 
-  const deleteTask = (id) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-  };
+  async function toggleTask(task) {
+    setError("");
 
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (a.done !== b.done) return a.done ? 1 : -1;
-    return a.due.localeCompare(b.due);
-  });
+    const { error } = await supabase
+      .from("tasks")
+      .update({ done: !task.done })
+      .eq("id", task.id);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    setTasks((current) =>
+      current.map((item) =>
+        item.id === task.id ? { ...item, done: !item.done } : item
+      )
+    );
+  }
+
+  async function deleteTask(id) {
+    setError("");
+
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    setTasks((current) => current.filter((task) => task.id !== id));
+  }
 
   const remaining = tasks.filter((task) => !task.done).length;
 
@@ -56,12 +112,13 @@ export default function Home() {
       <section className="container">
         <header className="hero">
           <div>
-            <p className="eyebrow">COLLEGE MVP</p>
+            <p className="eyebrow">COLLEGE MVP · SUPABASE</p>
             <h1>📚 My Task Manager</h1>
             <p className="subtitle">
-              여러 과목의 과제와 마감일을 한 곳에서 관리해보세요.
+              과제를 추가하면 Supabase 데이터베이스에 저장됩니다.
             </p>
           </div>
+
           <div className="count">
             <strong>{remaining}</strong>
             <span>남은 과제</span>
@@ -104,50 +161,64 @@ export default function Home() {
               />
             </label>
 
-            <button type="submit">+ 과제 추가</button>
+            <button type="submit" disabled={saving}>
+              {saving ? "저장 중..." : "+ 과제 추가"}
+            </button>
           </form>
         </section>
+
+        {error && <div className="error">⚠️ {error}</div>}
 
         <section className="card">
           <div className="section-title">
             <div>
               <h2>내 과제</h2>
-              <p>마감일이 빠른 순서로 정리됩니다.</p>
+              <p>데이터베이스에서 불러온 과제입니다.</p>
             </div>
             <span className="badge">{tasks.length}개</span>
           </div>
 
-          <div className="task-list">
-            {sortedTasks.length === 0 ? (
-              <div className="empty">등록된 과제가 없습니다.</div>
-            ) : (
-              sortedTasks.map((task) => (
-                <article className={`task ${task.done ? "completed" : ""}`} key={task.id}>
-                  <button
-                    className="check"
-                    onClick={() => toggleTask(task.id)}
-                    aria-label={`${task.title} 완료 처리`}
+          {loading ? (
+            <div className="empty">과제를 불러오는 중...</div>
+          ) : (
+            <div className="task-list">
+              {tasks.length === 0 ? (
+                <div className="empty">등록된 과제가 없습니다.</div>
+              ) : (
+                tasks.map((task) => (
+                  <article
+                    className={`task ${task.done ? "completed" : ""}`}
+                    key={task.id}
                   >
-                    {task.done ? "✓" : ""}
-                  </button>
+                    <button
+                      className="check"
+                      onClick={() => toggleTask(task)}
+                      aria-label="완료 처리"
+                    >
+                      {task.done ? "✓" : ""}
+                    </button>
 
-                  <div className="task-info">
-                    <span className="subject">{task.subject}</span>
-                    <h3>{task.title}</h3>
-                    <p>마감일 · {task.due}</p>
-                  </div>
+                    <div className="task-info">
+                      <span className="subject">{task.subject}</span>
+                      <h3>{task.title}</h3>
+                      <p>마감일 · {task.due}</p>
+                    </div>
 
-                  <button className="delete" onClick={() => deleteTask(task.id)}>
-                    삭제
-                  </button>
-                </article>
-              ))
-            )}
-          </div>
+                    <button
+                      className="delete"
+                      onClick={() => deleteTask(task.id)}
+                    >
+                      삭제
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+          )}
         </section>
 
         <footer>
-          <p>Next.js로 만든 과제 관리 MVP · 기능을 하나씩 추가해보세요.</p>
+          <p>Next.js + Supabase로 만든 과제 관리 MVP</p>
         </footer>
       </section>
     </main>

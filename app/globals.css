@@ -29,6 +29,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .page {
   min-height: 100vh;
   padding: 48px 20px;
@@ -161,6 +166,16 @@ input:focus {
   background: var(--blue);
   color: white;
   font-weight: 800;
+}
+
+.error {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 14px;
 }
 
 .task-list {
