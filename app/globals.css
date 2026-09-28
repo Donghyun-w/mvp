@@ -1,0 +1,284 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --navy: #172554;
+  --blue: #2563eb;
+  --light-blue: #eff6ff;
+  --text: #172033;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --background: #f5f7fb;
+  --white: #ffffff;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, "Noto Sans KR", sans-serif;
+  color: var(--text);
+  background: var(--background);
+}
+
+button, input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 48px 20px;
+}
+
+.container {
+  width: min(980px, 100%);
+  margin: 0 auto;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: -1.5px;
+}
+
+.subtitle {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.count {
+  min-width: 120px;
+  padding: 18px;
+  border-radius: 20px;
+  background: var(--navy);
+  color: white;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(23, 37, 84, 0.15);
+}
+
+.count strong {
+  display: block;
+  font-size: 32px;
+}
+
+.count span {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.card {
+  margin-bottom: 20px;
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--white);
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.section-title p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.badge {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--light-blue);
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+label {
+  display: grid;
+  gap: 8px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  outline: none;
+  background: white;
+}
+
+input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form > button {
+  height: 45px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--blue);
+  color: white;
+  font-weight: 800;
+}
+
+.task-list {
+  display: grid;
+  gap: 10px;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  transition: 0.2s;
+}
+
+.task:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+}
+
+.task.completed {
+  opacity: 0.58;
+}
+
+.check {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  background: white;
+  color: var(--blue);
+  font-weight: 900;
+}
+
+.completed .check {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: white;
+}
+
+.task-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.subject {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.task h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.task.completed h3 {
+  text-decoration: line-through;
+}
+
+.task p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.delete {
+  border: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.delete:hover {
+  color: #ef4444;
+}
+
+.empty {
+  padding: 40px;
+  color: var(--muted);
+  text-align: center;
+}
+
+footer {
+  padding: 10px 0 30px;
+  color: #9ca3af;
+  text-align: center;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 28px 14px;
+  }
+
+  .hero {
+    align-items: flex-start;
+  }
+
+  .count {
+    min-width: 90px;
+    padding: 13px;
+  }
+
+  .form {
+    grid-template-columns: 1fr;
+  }
+
+  .form > button {
+    width: 100%;
+  }
+
+  .card {
+    padding: 20px;
+  }
+}
