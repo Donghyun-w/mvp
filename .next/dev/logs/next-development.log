@@ -1,1 +1,5 @@
-{"timestamp":"00:00:00.818","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:00.351","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:00:00.352","source":"Server","level":"LOG","message":"✓ Generated AGENTS.md and CLAUDE.md for AI agents. Set `agentRules: false` in next.config to disable."}
+{"timestamp":"00:19:33.449","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:19:43.927","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:20:08.756","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
