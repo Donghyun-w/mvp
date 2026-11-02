@@ -145,7 +145,7 @@ label {
   display: grid;
 }
 
-input, select {
+input, select, textarea {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 12px;
@@ -154,7 +154,7 @@ input, select {
   padding: 13px 14px;
 }
 
-input:focus, select:focus {
+input:focus, select:focus, textarea:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px #2563eb1a;
 }
@@ -191,6 +191,63 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 .task-list {
   gap: 10px;
   display: grid;
+}
+
+.guestbook-form {
+  grid-template-columns: minmax(160px, .7fr) minmax(0, 2fr) auto;
+  align-items: end;
+  gap: 12px;
+  display: grid;
+}
+
+.guestbook-form textarea {
+  resize: vertical;
+  min-height: 46px;
+}
+
+.guestbook-form > button {
+  background: var(--navy);
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  height: 45px;
+  padding: 0 18px;
+  font-weight: 800;
+}
+
+.guestbook-list {
+  gap: 10px;
+  margin-top: 22px;
+  display: grid;
+}
+
+.guestbook-entry {
+  border: 1px solid var(--line);
+  background: #fbfdff;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.guestbook-entry > div {
+  justify-content: space-between;
+  gap: 16px;
+  display: flex;
+}
+
+.guestbook-entry strong {
+  color: var(--navy);
+  font-size: 14px;
+}
+
+.guestbook-entry time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.guestbook-entry p {
+  white-space: pre-wrap;
+  margin: 8px 0 0;
+  line-height: 1.55;
 }
 
 .task {
@@ -297,11 +354,11 @@ footer {
     padding: 13px;
   }
 
-  .form {
+  .form, .guestbook-form {
     grid-template-columns: 1fr;
   }
 
-  .form > button {
+  .form > button, .guestbook-form > button {
     width: 100%;
   }
 
