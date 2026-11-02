@@ -1,108 +1,93 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+
+const STORAGE_KEY = "college-task-manager.tasks";
+
+const SUBJECTS = [
+  "C 프로그래밍",
+  "공학설계",
+  "미적분학",
+  "영어 학술 글쓰기",
+  "시사 쟁점",
+  "미술의 이해",
+  "홀리램스/슬기짜기",
+  "기타"
+];
+
+function sortTasks(tasks) {
+  return [...tasks].sort((a, b) => {
+    if (a.done !== b.done) return Number(a.done) - Number(b.done);
+    return a.due.localeCompare(b.due);
+  });
+}
+
+function formatDueDate(due) {
+  const [year, month, day] = due.split("-");
+  return `${year}년 ${Number(month)}월 ${Number(day)}일`;
+}
 
 export default function Home() {
   const [tasks, setTasks] = useState([]);
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState(SUBJECTS[0]);
   const [title, setTitle] = useState("");
   const [due, setDue] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  async function loadTasks() {
-    setLoading(true);
-    setError("");
-
-    const { data, error } = await supabase
-      .from("tasks")
-      .select("*")
-      .order("done", { ascending: true })
-      .order("due", { ascending: true });
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setTasks(data ?? []);
-    }
-
-    setLoading(false);
-  }
+  const [hasLoadedTasks, setHasLoadedTasks] = useState(false);
 
   useEffect(() => {
-    loadTasks();
+    try {
+      const savedTasks = window.localStorage.getItem(STORAGE_KEY);
+      if (savedTasks) setTasks(sortTasks(JSON.parse(savedTasks)));
+    } catch {
+      setError("저장된 과제를 불러오지 못했습니다.");
+    } finally {
+      setHasLoadedTasks(true);
+      setLoading(false);
+    }
   }, []);
 
-  async function addTask(e) {
+  useEffect(() => {
+    if (!hasLoadedTasks) return;
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    } catch {
+      setError("과제를 이 브라우저에 저장하지 못했습니다.");
+    }
+  }, [hasLoadedTasks, tasks]);
+
+  function addTask(e) {
     e.preventDefault();
 
-    if (!subject.trim() || !title.trim() || !due) {
-      setError("과목, 과제 이름, 마감일을 모두 입력해주세요.");
+    if (!title.trim() || !due) {
+      setError("과제 이름과 마감일을 모두 입력해주세요.");
       return;
     }
 
-    setSaving(true);
     setError("");
-
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({
-        subject: subject.trim(),
-        title: title.trim(),
-        due,
-        done: false
-      })
-      .select()
-      .single();
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setTasks((current) => [...current, data]);
-      setSubject("");
-      setTitle("");
-      setDue("");
-    }
-
-    setSaving(false);
+    const task = { id: crypto.randomUUID(), subject, title: title.trim(), due, done: false };
+    setTasks((current) => sortTasks([...current, task]));
+    setSubject(SUBJECTS[0]);
+    setTitle("");
+    setDue("");
   }
 
-  async function toggleTask(task) {
+  function toggleTask(task) {
     setError("");
-
-    const { error } = await supabase
-      .from("tasks")
-      .update({ done: !task.done })
-      .eq("id", task.id);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
     setTasks((current) =>
-      current.map((item) =>
+      sortTasks(current.map((item) =>
         item.id === task.id ? { ...item, done: !item.done } : item
-      )
+      ))
     );
   }
 
-  async function deleteTask(id) {
+  function deleteTask(task) {
+    if (!window.confirm(`“${task.title}” 과제를 삭제할까요?`)) return;
+
     setError("");
-
-    const { error } = await supabase
-      .from("tasks")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    setTasks((current) => current.filter((task) => task.id !== id));
+    setTasks((current) => current.filter((item) => item.id !== task.id));
   }
 
   const remaining = tasks.filter((task) => !task.done).length;
@@ -112,10 +97,10 @@ export default function Home() {
       <section className="container">
         <header className="hero">
           <div>
-            <p className="eyebrow">COLLEGE MVP · SUPABASE</p>
-            <h1>📚 My Task Manager</h1>
+            <p className="eyebrow">COLLEGE MVP · LOCAL</p>
+            <h1>내 과제 관리</h1>
             <p className="subtitle">
-              과제를 추가하면 Supabase 데이터베이스에 저장됩니다.
+              과제는 이 브라우저에 안전하게 저장됩니다.
             </p>
           </div>
 
@@ -136,11 +121,12 @@ export default function Home() {
           <form onSubmit={addTask} className="form">
             <label>
               과목
-              <input
+              <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="예: C언어"
-              />
+              >
+                {SUBJECTS.map((sub) => <option key={sub} value={sub}>{sub}</option>)}
+              </select>
             </label>
 
             <label>
@@ -149,6 +135,7 @@ export default function Home() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="예: 배열 과제"
+                required
               />
             </label>
 
@@ -158,22 +145,23 @@ export default function Home() {
                 type="date"
                 value={due}
                 onChange={(e) => setDue(e.target.value)}
+                required
               />
             </label>
 
-            <button type="submit" disabled={saving}>
-              {saving ? "저장 중..." : "+ 과제 추가"}
+            <button type="submit">
+              + 과제 추가
             </button>
           </form>
         </section>
 
-        {error && <div className="error">⚠️ {error}</div>}
+        {error && <div className="error" role="alert">⚠️ {error}</div>}
 
         <section className="card">
           <div className="section-title">
             <div>
               <h2>내 과제</h2>
-              <p>데이터베이스에서 불러온 과제입니다.</p>
+            <p>이 브라우저에 저장된 과제입니다.</p>
             </div>
             <span className="badge">{tasks.length}개</span>
           </div>
@@ -193,7 +181,8 @@ export default function Home() {
                     <button
                       className="check"
                       onClick={() => toggleTask(task)}
-                      aria-label="완료 처리"
+                      aria-label={task.done ? "미완료로 변경" : "완료 처리"}
+                      aria-pressed={task.done}
                     >
                       {task.done ? "✓" : ""}
                     </button>
@@ -201,12 +190,12 @@ export default function Home() {
                     <div className="task-info">
                       <span className="subject">{task.subject}</span>
                       <h3>{task.title}</h3>
-                      <p>마감일 · {task.due}</p>
+                      <p>마감일 · {formatDueDate(task.due)}</p>
                     </div>
 
                     <button
                       className="delete"
-                      onClick={() => deleteTask(task.id)}
+                      onClick={() => deleteTask(task)}
                     >
                       삭제
                     </button>
@@ -218,7 +207,7 @@ export default function Home() {
         </section>
 
         <footer>
-          <p>Next.js + Supabase로 만든 과제 관리 MVP</p>
+          <p>이 브라우저에 저장되는 과제 관리 MVP</p>
         </footer>
       </section>
     </main>

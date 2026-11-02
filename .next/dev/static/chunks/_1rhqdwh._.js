@@ -14,14 +14,37 @@ var _s = __turbopack_context__.k.signature();
 "use client";
 ;
 ;
+const SUBJECTS = [
+    "C 프로그래밍",
+    "공학설계",
+    "미적분학",
+    "영어 학술 글쓰기",
+    "시사 쟁점",
+    "미술의 이해",
+    "홀리램스/슬기짜기",
+    "기타"
+];
+function sortTasks(tasks) {
+    return [
+        ...tasks
+    ].sort((a, b)=>{
+        if (a.done !== b.done) return Number(a.done) - Number(b.done);
+        return a.due.localeCompare(b.due);
+    });
+}
+function formatDueDate(due) {
+    const [year, month, day] = due.split("-");
+    return `${year}년 ${Number(month)}월 ${Number(day)}일`;
+}
 function Home() {
     _s();
     const [tasks, setTasks] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])([]);
-    const [subject, setSubject] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
+    const [subject, setSubject] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(SUBJECTS[0]);
     const [title, setTitle] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [due, setDue] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [loading, setLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
     const [saving, setSaving] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [activeTaskId, setActiveTaskId] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [error, setError] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     async function loadTasks() {
         setLoading(true);
@@ -34,7 +57,7 @@ function Home() {
         if (error) {
             setError(error.message);
         } else {
-            setTasks(data ?? []);
+            setTasks(sortTasks(data ?? []));
         }
         setLoading(false);
     }
@@ -45,8 +68,8 @@ function Home() {
     }["Home.useEffect"], []);
     async function addTask(e) {
         e.preventDefault();
-        if (!subject.trim() || !title.trim() || !due) {
-            setError("과목, 과제 이름, 마감일을 모두 입력해주세요.");
+        if (!title.trim() || !due) {
+            setError("과제 이름과 마감일을 모두 입력해주세요.");
             return;
         }
         setSaving(true);
@@ -60,11 +83,11 @@ function Home() {
         if (error) {
             setError(error.message);
         } else {
-            setTasks((current)=>[
+            setTasks((current)=>sortTasks([
                     ...current,
                     data
-                ]);
-            setSubject("");
+                ]));
+            setSubject(SUBJECTS[0]);
             setTitle("");
             setDue("");
         }
@@ -72,26 +95,33 @@ function Home() {
     }
     async function toggleTask(task) {
         setError("");
+        setActiveTaskId(task.id);
         const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from("tasks").update({
             done: !task.done
         }).eq("id", task.id);
         if (error) {
             setError(error.message);
+            setActiveTaskId(null);
             return;
         }
-        setTasks((current)=>current.map((item)=>item.id === task.id ? {
+        setTasks((current)=>sortTasks(current.map((item)=>item.id === task.id ? {
                     ...item,
                     done: !item.done
-                } : item));
+                } : item)));
+        setActiveTaskId(null);
     }
-    async function deleteTask(id) {
+    async function deleteTask(task) {
+        if (!window.confirm(`“${task.title}” 과제를 삭제할까요?`)) return;
         setError("");
-        const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from("tasks").delete().eq("id", id);
+        setActiveTaskId(task.id);
+        const { error } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$supabase$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["supabase"].from("tasks").delete().eq("id", task.id);
         if (error) {
             setError(error.message);
+            setActiveTaskId(null);
             return;
         }
-        setTasks((current)=>current.filter((task)=>task.id !== id));
+        setTasks((current)=>current.filter((item)=>item.id !== task.id));
+        setActiveTaskId(null);
     }
     const remaining = tasks.filter((task)=>!task.done).length;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -109,14 +139,14 @@ function Home() {
                                     children: "COLLEGE MVP · SUPABASE"
                                 }, void 0, false, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 115,
+                                    lineNumber: 147,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
-                                    children: "📚 My Task Manager"
+                                    children: "내 과제 관리"
                                 }, void 0, false, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 116,
+                                    lineNumber: 148,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -124,13 +154,13 @@ function Home() {
                                     children: "과제를 추가하면 Supabase 데이터베이스에 저장됩니다."
                                 }, void 0, false, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 117,
+                                    lineNumber: 149,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/page.js",
-                            lineNumber: 114,
+                            lineNumber: 146,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -140,26 +170,26 @@ function Home() {
                                     children: remaining
                                 }, void 0, false, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 123,
+                                    lineNumber: 155,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                     children: "남은 과제"
                                 }, void 0, false, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 124,
+                                    lineNumber: 156,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/page.js",
-                            lineNumber: 122,
+                            lineNumber: 154,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/page.js",
-                    lineNumber: 113,
+                    lineNumber: 145,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -173,25 +203,25 @@ function Home() {
                                         children: "새 과제 추가"
                                     }, void 0, false, {
                                         fileName: "[project]/app/page.js",
-                                        lineNumber: 131,
+                                        lineNumber: 163,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                         children: "과목, 과제 이름, 마감일을 입력하세요."
                                     }, void 0, false, {
                                         fileName: "[project]/app/page.js",
-                                        lineNumber: 132,
+                                        lineNumber: 164,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/page.js",
-                                lineNumber: 130,
+                                lineNumber: 162,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/app/page.js",
-                            lineNumber: 129,
+                            lineNumber: 161,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -201,19 +231,26 @@ function Home() {
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                     children: [
                                         "과목",
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
                                             value: subject,
                                             onChange: (e)=>setSubject(e.target.value),
-                                            placeholder: "예: C언어"
+                                            children: SUBJECTS.map((sub)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                    value: sub,
+                                                    children: sub
+                                                }, sub, false, {
+                                                    fileName: "[project]/app/page.js",
+                                                    lineNumber: 175,
+                                                    columnNumber: 40
+                                                }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 139,
+                                            lineNumber: 171,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 137,
+                                    lineNumber: 169,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -222,16 +259,17 @@ function Home() {
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
                                             value: title,
                                             onChange: (e)=>setTitle(e.target.value),
-                                            placeholder: "예: 배열 과제"
+                                            placeholder: "예: 배열 과제",
+                                            required: true
                                         }, void 0, false, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 148,
+                                            lineNumber: 181,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 146,
+                                    lineNumber: 179,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -240,16 +278,17 @@ function Home() {
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
                                             type: "date",
                                             value: due,
-                                            onChange: (e)=>setDue(e.target.value)
+                                            onChange: (e)=>setDue(e.target.value),
+                                            required: true
                                         }, void 0, false, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 157,
+                                            lineNumber: 191,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 155,
+                                    lineNumber: 189,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -258,30 +297,31 @@ function Home() {
                                     children: saving ? "저장 중..." : "+ 과제 추가"
                                 }, void 0, false, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 164,
+                                    lineNumber: 199,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/page.js",
-                            lineNumber: 136,
+                            lineNumber: 168,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/page.js",
-                    lineNumber: 128,
+                    lineNumber: 160,
                     columnNumber: 9
                 }, this),
                 error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                     className: "error",
+                    role: "alert",
                     children: [
                         "⚠️ ",
                         error
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/page.js",
-                    lineNumber: 170,
+                    lineNumber: 205,
                     columnNumber: 19
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
@@ -296,20 +336,20 @@ function Home() {
                                             children: "내 과제"
                                         }, void 0, false, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 175,
+                                            lineNumber: 210,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                             children: "데이터베이스에서 불러온 과제입니다."
                                         }, void 0, false, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 176,
+                                            lineNumber: 211,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 174,
+                                    lineNumber: 209,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -320,13 +360,13 @@ function Home() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 178,
+                                    lineNumber: 213,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/page.js",
-                            lineNumber: 173,
+                            lineNumber: 208,
                             columnNumber: 11
                         }, this),
                         loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -334,7 +374,7 @@ function Home() {
                             children: "과제를 불러오는 중..."
                         }, void 0, false, {
                             fileName: "[project]/app/page.js",
-                            lineNumber: 182,
+                            lineNumber: 217,
                             columnNumber: 13
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "task-list",
@@ -343,7 +383,7 @@ function Home() {
                                 children: "등록된 과제가 없습니다."
                             }, void 0, false, {
                                 fileName: "[project]/app/page.js",
-                                lineNumber: 186,
+                                lineNumber: 221,
                                 columnNumber: 17
                             }, this) : tasks.map((task)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("article", {
                                     className: `task ${task.done ? "completed" : ""}`,
@@ -351,11 +391,13 @@ function Home() {
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                             className: "check",
                                             onClick: ()=>toggleTask(task),
-                                            "aria-label": "완료 처리",
+                                            disabled: activeTaskId === task.id,
+                                            "aria-label": task.done ? "미완료로 변경" : "완료 처리",
+                                            "aria-pressed": task.done,
                                             children: task.done ? "✓" : ""
                                         }, void 0, false, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 193,
+                                            lineNumber: 228,
                                             columnNumber: 21
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -366,56 +408,57 @@ function Home() {
                                                     children: task.subject
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/page.js",
-                                                    lineNumber: 202,
+                                                    lineNumber: 239,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
                                                     children: task.title
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/page.js",
-                                                    lineNumber: 203,
+                                                    lineNumber: 240,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                     children: [
                                                         "마감일 · ",
-                                                        task.due
+                                                        formatDueDate(task.due)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/app/page.js",
-                                                    lineNumber: 204,
+                                                    lineNumber: 241,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 201,
+                                            lineNumber: 238,
                                             columnNumber: 21
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                             className: "delete",
-                                            onClick: ()=>deleteTask(task.id),
+                                            onClick: ()=>deleteTask(task),
+                                            disabled: activeTaskId === task.id,
                                             children: "삭제"
                                         }, void 0, false, {
                                             fileName: "[project]/app/page.js",
-                                            lineNumber: 207,
+                                            lineNumber: 244,
                                             columnNumber: 21
                                         }, this)
                                     ]
                                 }, task.id, true, {
                                     fileName: "[project]/app/page.js",
-                                    lineNumber: 189,
+                                    lineNumber: 224,
                                     columnNumber: 19
                                 }, this))
                         }, void 0, false, {
                             fileName: "[project]/app/page.js",
-                            lineNumber: 184,
+                            lineNumber: 219,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/page.js",
-                    lineNumber: 172,
+                    lineNumber: 207,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("footer", {
@@ -423,27 +466,27 @@ function Home() {
                         children: "Next.js + Supabase로 만든 과제 관리 MVP"
                     }, void 0, false, {
                         fileName: "[project]/app/page.js",
-                        lineNumber: 221,
+                        lineNumber: 259,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/app/page.js",
-                    lineNumber: 220,
+                    lineNumber: 258,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/app/page.js",
-            lineNumber: 112,
+            lineNumber: 144,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/app/page.js",
-        lineNumber: 111,
+        lineNumber: 143,
         columnNumber: 5
     }, this);
 }
-_s(Home, "I9LAFW+LMM7zB04JXClUo9TEAqE=");
+_s(Home, "8QR2/laK9rssVQV7DlqV8Yjzm3c=");
 _c = Home;
 var _c;
 __turbopack_context__.k.register(_c, "Home");

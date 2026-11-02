@@ -22,7 +22,7 @@ html, body {
   font-family: Arial, Noto Sans KR, sans-serif;
 }
 
-button, input {
+button, input, select {
   font: inherit;
 }
 
@@ -145,7 +145,7 @@ label {
   display: grid;
 }
 
-input {
+input, select {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 12px;
@@ -154,7 +154,7 @@ input {
   padding: 13px 14px;
 }
 
-input:focus {
+input:focus, select:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px #2563eb1a;
 }
@@ -167,6 +167,15 @@ input:focus {
   height: 45px;
   padding: 0 18px;
   font-weight: 800;
+}
+
+.form > button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline-offset: 2px;
+  outline: 3px solid #2563eb3d;
 }
 
 .error {
@@ -278,11 +287,13 @@ footer {
   }
 
   .hero {
+    flex-direction: column;
     align-items: flex-start;
   }
 
   .count {
-    min-width: 90px;
+    text-align: left;
+    min-width: 0;
     padding: 13px;
   }
 

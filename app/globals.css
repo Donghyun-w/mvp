@@ -21,7 +21,7 @@ html, body {
   background: var(--background);
 }
 
-button, input {
+button, input, select {
   font: inherit;
 }
 
@@ -144,7 +144,7 @@ label {
   font-weight: 700;
 }
 
-input {
+input, select {
   width: 100%;
   padding: 13px 14px;
   border: 1px solid var(--line);
@@ -153,7 +153,7 @@ input {
   background: white;
 }
 
-input:focus {
+input:focus, select:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
@@ -166,6 +166,15 @@ input:focus {
   background: var(--blue);
   color: white;
   font-weight: 800;
+}
+
+.form > button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.24);
+  outline-offset: 2px;
 }
 
 .error {
@@ -278,11 +287,13 @@ footer {
 
   .hero {
     align-items: flex-start;
+    flex-direction: column;
   }
 
   .count {
-    min-width: 90px;
+    min-width: 0;
     padding: 13px;
+    text-align: left;
   }
 
   .form {
