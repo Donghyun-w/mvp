@@ -177,6 +177,63 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline-offset: 2px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-email {
+  max-width: 220px;
+  overflow: hidden;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-button {
+  border: 0;
+  padding: 8px 10px;
+  color: var(--blue);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.auth-form > button:not(.auth-switch) {
+  height: 45px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  background: var(--navy);
+  font-weight: 800;
+}
+
+.auth-switch {
+  align-self: end;
+  height: 45px;
+}
+
+.notice {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  color: #166534;
+  background: #f0fdf4;
+  font-size: 14px;
+}
+
 .error {
   margin-bottom: 20px;
   padding: 14px 16px;
@@ -353,12 +410,21 @@ footer {
     text-align: left;
   }
 
-  .form, .guestbook-form {
+  .form, .guestbook-form, .auth-form {
     grid-template-columns: 1fr;
   }
 
   .form > button, .guestbook-form > button {
     width: 100%;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .auth-switch {
+    justify-self: start;
   }
 
   .card {

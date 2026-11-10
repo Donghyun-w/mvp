@@ -178,6 +178,63 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 3px solid #2563eb3d;
 }
 
+.header-actions {
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+
+.user-email {
+  max-width: 220px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.text-button {
+  color: var(--blue);
+  background: none;
+  border: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-form {
+  grid-template-columns: 1fr 1fr auto auto;
+  align-items: end;
+  gap: 12px;
+  display: grid;
+}
+
+.auth-form > button:not(.auth-switch) {
+  color: #fff;
+  background: var(--navy);
+  border: 0;
+  border-radius: 12px;
+  height: 45px;
+  padding: 0 18px;
+  font-weight: 800;
+}
+
+.auth-switch {
+  align-self: end;
+  height: 45px;
+}
+
+.notice {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
 .error {
   color: #b91c1c;
   background: #fef2f2;
@@ -354,12 +411,21 @@ footer {
     padding: 13px;
   }
 
-  .form, .guestbook-form {
+  .form, .guestbook-form, .auth-form {
     grid-template-columns: 1fr;
   }
 
   .form > button, .guestbook-form > button {
     width: 100%;
+  }
+
+  .header-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .auth-switch {
+    justify-self: start;
   }
 
   .card {

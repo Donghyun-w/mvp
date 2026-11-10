@@ -3,16 +3,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-const SUBJECTS = [
-  "C 프로그래밍", "공학설계", "미적분학", "영어 학술 글쓰기",
-  "시사 쟁점", "미술의 이해", "홀리램스/슬기짜기", "기타"
-];
+const SUBJECTS = ["C 프로그래밍", "공학설계", "미적분학", "영어 학술 글쓰기", "시사 쟁점", "미술의 이해", "홀리램스/슬기짜기", "기타"];
 
 function sortTasks(tasks) {
-  return [...tasks].sort((a, b) => {
-    if (a.done !== b.done) return Number(a.done) - Number(b.done);
-    return a.due.localeCompare(b.due);
-  });
+  return [...tasks].sort((a, b) => Number(a.done) - Number(b.done) || a.due.localeCompare(b.due));
 }
 
 function formatDueDate(due) {
@@ -25,6 +19,7 @@ function formatDateTime(value) {
 }
 
 export default function Home() {
+  const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [guestbookEntries, setGuestbookEntries] = useState([]);
   const [subject, setSubject] = useState(SUBJECTS[0]);
@@ -32,32 +27,84 @@ export default function Home() {
   const [due, setDue] = useState("");
   const [guestName, setGuestName] = useState("");
   const [guestMessage, setGuestMessage] = useState("");
+  const [authMode, setAuthMode] = useState("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingTask, setSavingTask] = useState(false);
   const [savingGuestbook, setSavingGuestbook] = useState(false);
+  const [savingAuth, setSavingAuth] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
-  async function loadData() {
+  async function loadData(currentUser) {
     setLoading(true);
-    setError("");
-
+    const taskQuery = currentUser
+      ? supabase.from("tasks").select("*").order("done", { ascending: true }).order("due", { ascending: true })
+      : Promise.resolve({ data: [], error: null });
     const [taskResult, guestbookResult] = await Promise.all([
-      supabase.from("tasks").select("*").order("done", { ascending: true }).order("due", { ascending: true }),
+      taskQuery,
       supabase.from("guestbook_entries").select("*").order("created_at", { ascending: false }).limit(20)
     ]);
 
-    const errors = [taskResult.error, guestbookResult.error].filter(Boolean);
-    if (errors.length) setError(errors[0].message);
+    const failed = [taskResult.error, guestbookResult.error].find(Boolean);
+    if (failed) setError(failed.message);
     if (!taskResult.error) setTasks(sortTasks(taskResult.data ?? []));
     if (!guestbookResult.error) setGuestbookEntries(guestbookResult.data ?? []);
     setLoading(false);
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    async function initialize() {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      await loadData(currentUser);
+    }
+
+    initialize();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      loadData(currentUser);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function submitAuth(event) {
+    event.preventDefault();
+    setError("");
+    setNotice("");
+    setSavingAuth(true);
+    const credentials = { email: authEmail.trim(), password: authPassword };
+    const result = authMode === "signup"
+      ? await supabase.auth.signUp(credentials)
+      : await supabase.auth.signInWithPassword(credentials);
+
+    if (result.error) {
+      setError(result.error.message);
+    } else if (authMode === "signup" && !result.data.session) {
+      setNotice("가입 확인 이메일을 보냈습니다. 이메일 인증 후 로그인해주세요.");
+    } else {
+      setAuthPassword("");
+      setNotice(authMode === "signup" ? "회원가입과 로그인이 완료되었습니다." : "로그인되었습니다.");
+    }
+    setSavingAuth(false);
+  }
+
+  async function signOut() {
+    setError("");
+    await supabase.auth.signOut();
+    setTasks([]);
+    setNotice("로그아웃되었습니다.");
+  }
 
   async function addTask(event) {
     event.preventDefault();
+    if (!user) {
+      setError("내 과제를 저장하려면 먼저 로그인해주세요.");
+      return;
+    }
     if (!title.trim() || !due) {
       setError("과제 이름과 마감일을 모두 입력해주세요.");
       return;
@@ -65,15 +112,14 @@ export default function Home() {
 
     setSavingTask(true);
     setError("");
-    const { data, error } = await supabase
+    const { data, error: insertError } = await supabase
       .from("tasks")
       .insert({ subject, title: title.trim(), due, done: false })
       .select()
       .single();
 
-    if (error) {
-      setError(error.message);
-    } else {
+    if (insertError) setError(insertError.message);
+    else {
       setTasks((current) => sortTasks([...current, data]));
       setSubject(SUBJECTS[0]);
       setTitle("");
@@ -85,13 +131,9 @@ export default function Home() {
   async function toggleTask(task) {
     setError("");
     setActiveTaskId(task.id);
-    const { error } = await supabase.from("tasks").update({ done: !task.done }).eq("id", task.id);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setTasks((current) => sortTasks(current.map((item) => item.id === task.id ? { ...item, done: !item.done } : item)));
-    }
+    const { error: updateError } = await supabase.from("tasks").update({ done: !task.done }).eq("id", task.id);
+    if (updateError) setError(updateError.message);
+    else setTasks((current) => sortTasks(current.map((item) => item.id === task.id ? { ...item, done: !item.done } : item)));
     setActiveTaskId(null);
   }
 
@@ -99,9 +141,8 @@ export default function Home() {
     if (!window.confirm(`“${task.title}” 과제를 삭제할까요?`)) return;
     setError("");
     setActiveTaskId(task.id);
-    const { error } = await supabase.from("tasks").delete().eq("id", task.id);
-
-    if (error) setError(error.message);
+    const { error: deleteError } = await supabase.from("tasks").delete().eq("id", task.id);
+    if (deleteError) setError(deleteError.message);
     else setTasks((current) => current.filter((item) => item.id !== task.id));
     setActiveTaskId(null);
   }
@@ -112,18 +153,15 @@ export default function Home() {
       setError("이름과 방명록 메시지를 모두 입력해주세요.");
       return;
     }
-
     setSavingGuestbook(true);
     setError("");
-    const { data, error } = await supabase
+    const { data, error: insertError } = await supabase
       .from("guestbook_entries")
       .insert({ name: guestName.trim(), message: guestMessage.trim() })
       .select()
       .single();
-
-    if (error) {
-      setError(error.message);
-    } else {
+    if (insertError) setError(insertError.message);
+    else {
       setGuestbookEntries((current) => [data, ...current].slice(0, 20));
       setGuestName("");
       setGuestMessage("");
@@ -140,27 +178,43 @@ export default function Home() {
           <div>
             <p className="eyebrow">COLLEGE MVP · SUPABASE</p>
             <h1>내 과제 관리</h1>
-            <p className="subtitle">과제와 방명록은 Supabase 데이터베이스에 저장됩니다.</p>
+            <p className="subtitle">로그인하면 나만의 과제를 저장하고 관리할 수 있습니다.</p>
           </div>
-          <div className="count"><strong>{remaining}</strong><span>남은 과제</span></div>
+          <div className="header-actions">
+            {user ? <><p className="user-email">{user.email}</p><button className="text-button" type="button" onClick={signOut}>로그아웃</button></> : <button className="text-button" type="button" onClick={() => document.getElementById("auth-card")?.scrollIntoView({ behavior: "smooth" })}>로그인</button>}
+            <div className="count"><strong>{remaining}</strong><span>남은 과제</span></div>
+          </div>
         </header>
 
+        {!user && <section className="card auth-card" id="auth-card" aria-labelledby="auth-title">
+          <div className="section-title"><div><h2 id="auth-title">{authMode === "login" ? "로그인" : "이메일 회원가입"}</h2><p>내 과제는 계정별로 분리되어 저장됩니다.</p></div></div>
+          <form className="auth-form" onSubmit={submitAuth}>
+            <label>이메일<input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="you@example.com" required /></label>
+            <label>비밀번호<input type="password" value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} minLength="6" placeholder="6자 이상" required /></label>
+            <button type="submit" disabled={savingAuth}>{savingAuth ? "처리 중..." : authMode === "login" ? "로그인" : "회원가입"}</button>
+            <button className="text-button auth-switch" type="button" onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setError(""); setNotice(""); }}>
+              {authMode === "login" ? "처음이라면 회원가입" : "이미 계정이 있다면 로그인"}
+            </button>
+          </form>
+        </section>}
+
+        {notice && <div className="notice" role="status">{notice}</div>}
+        {error && <div className="error" role="alert">⚠️ {error}</div>}
+
         <section className="card add-card" aria-labelledby="add-task-title">
-          <div className="section-title"><div><h2 id="add-task-title">새 과제 추가</h2><p>과목, 과제 이름, 마감일을 입력하세요.</p></div></div>
+          <div className="section-title"><div><h2 id="add-task-title">새 과제 추가</h2><p>{user ? "과목, 과제 이름, 마감일을 입력하세요." : "내 과제를 추가하려면 먼저 로그인하세요."}</p></div></div>
           <form onSubmit={addTask} className="form">
-            <label>과목<select value={subject} onChange={(event) => setSubject(event.target.value)}>{SUBJECTS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-            <label>과제 이름<input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="예: 배열 과제" required /></label>
-            <label>마감일<input type="date" value={due} onChange={(event) => setDue(event.target.value)} required /></label>
-            <button type="submit" disabled={savingTask}>{savingTask ? "저장 중..." : "+ 과제 추가"}</button>
+            <label>과목<select value={subject} disabled={!user} onChange={(event) => setSubject(event.target.value)}>{SUBJECTS.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label>과제 이름<input value={title} disabled={!user} onChange={(event) => setTitle(event.target.value)} placeholder="예: 배열 과제" required /></label>
+            <label>마감일<input type="date" value={due} disabled={!user} onChange={(event) => setDue(event.target.value)} required /></label>
+            <button type="submit" disabled={!user || savingTask}>{savingTask ? "저장 중..." : "+ 과제 추가"}</button>
           </form>
         </section>
 
-        {error && <div className="error" role="alert">⚠️ {error}</div>}
-
         <section className="card" aria-labelledby="task-list-title">
-          <div className="section-title"><div><h2 id="task-list-title">내 과제</h2><p>마감일이 가까운 미완료 과제부터 표시합니다.</p></div><span className="badge">{tasks.length}개</span></div>
+          <div className="section-title"><div><h2 id="task-list-title">내 과제</h2><p>{user ? "마감일이 가까운 미완료 과제부터 표시합니다." : "로그인 후 내 과제를 불러옵니다."}</p></div><span className="badge">{tasks.length}개</span></div>
           {loading ? <div className="empty">정보를 불러오는 중...</div> : <div className="task-list">
-            {tasks.length === 0 ? <div className="empty">등록된 과제가 없습니다.</div> : tasks.map((task) => <article className={`task ${task.done ? "completed" : ""}`} key={task.id}>
+            {!user ? <div className="empty">로그인하면 내 과제를 확인할 수 있습니다.</div> : tasks.length === 0 ? <div className="empty">등록된 과제가 없습니다.</div> : tasks.map((task) => <article className={`task ${task.done ? "completed" : ""}`} key={task.id}>
               <button className="check" onClick={() => toggleTask(task)} disabled={activeTaskId === task.id} aria-label={task.done ? "미완료로 변경" : "완료 처리"} aria-pressed={task.done}>{task.done ? "✓" : ""}</button>
               <div className="task-info"><span className="subject">{task.subject}</span><h3>{task.title}</h3><p>마감일 · {formatDueDate(task.due)}</p></div>
               <button className="delete" onClick={() => deleteTask(task)} disabled={activeTaskId === task.id}>삭제</button>
@@ -176,9 +230,7 @@ export default function Home() {
             <button type="submit" disabled={savingGuestbook}>{savingGuestbook ? "남기는 중..." : "방명록 남기기"}</button>
           </form>
           {!loading && <div className="guestbook-list">
-            {guestbookEntries.length === 0 ? <div className="empty">첫 번째 방명록을 남겨보세요.</div> : guestbookEntries.map((entry) => <article className="guestbook-entry" key={entry.id}>
-              <div><strong>{entry.name}</strong><time dateTime={entry.created_at}>{formatDateTime(entry.created_at)}</time></div><p>{entry.message}</p>
-            </article>)}
+            {guestbookEntries.length === 0 ? <div className="empty">첫 번째 방명록을 남겨보세요.</div> : guestbookEntries.map((entry) => <article className="guestbook-entry" key={entry.id}><div><strong>{entry.name}</strong><time dateTime={entry.created_at}>{formatDateTime(entry.created_at)}</time></div><p>{entry.message}</p></article>)}
           </div>}
         </section>
         <footer><p>Next.js + Supabase로 만든 과제 관리 MVP</p></footer>
