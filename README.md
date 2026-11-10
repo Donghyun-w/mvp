@@ -14,7 +14,7 @@ Supabase 프로젝트의 SQL Editor에서 `supabase.sql` 전체를 실행하세�
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL=https://프로젝트ID.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
 ## 3. 실행
