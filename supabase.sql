@@ -19,6 +19,9 @@ create table if not exists public.guestbook_entries (
   created_at timestamptz not null default now()
 );
 
+alter table public.guestbook_entries
+  add column if not exists user_id uuid references auth.users(id) default auth.uid();
+
 alter table public.tasks enable row level security;
 alter table public.guestbook_entries enable row level security;
 
@@ -37,5 +40,8 @@ create policy "Users can delete own tasks" on public.tasks for delete to authent
 
 drop policy if exists "Allow public read guestbook" on public.guestbook_entries;
 drop policy if exists "Allow public insert guestbook" on public.guestbook_entries;
+drop policy if exists "Users can add guestbook entries" on public.guestbook_entries;
+drop policy if exists "Users can delete own guestbook entries" on public.guestbook_entries;
 create policy "Allow public read guestbook" on public.guestbook_entries for select to anon, authenticated using (true);
-create policy "Allow public insert guestbook" on public.guestbook_entries for insert to anon, authenticated with check (true);
+create policy "Users can add guestbook entries" on public.guestbook_entries for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "Users can delete own guestbook entries" on public.guestbook_entries for delete to authenticated using ((select auth.uid()) = user_id);

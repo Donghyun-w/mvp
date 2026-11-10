@@ -32,6 +32,7 @@ export default function Home() {
   const [savingTask, setSavingTask] = useState(false);
   const [savingGuestbook, setSavingGuestbook] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
+  const [activeGuestbookId, setActiveGuestbookId] = useState(null);
   const [error, setError] = useState("");
 
   async function loadData(currentUser) {
@@ -123,6 +124,10 @@ export default function Home() {
 
   async function addGuestbookEntry(event) {
     event.preventDefault();
+    if (!user) {
+      setError("방명록을 남기려면 먼저 로그인해주세요.");
+      return;
+    }
     if (!guestName.trim() || !guestMessage.trim()) {
       setError("이름과 방명록 메시지를 모두 입력해주세요.");
       return;
@@ -141,6 +146,16 @@ export default function Home() {
       setGuestMessage("");
     }
     setSavingGuestbook(false);
+  }
+
+  async function deleteGuestbookEntry(entry) {
+    if (!window.confirm("이 방명록을 삭제할까요?")) return;
+    setError("");
+    setActiveGuestbookId(entry.id);
+    const { error: deleteError } = await supabase.from("guestbook_entries").delete().eq("id", entry.id);
+    if (deleteError) setError(deleteError.message);
+    else setGuestbookEntries((current) => current.filter((item) => item.id !== entry.id));
+    setActiveGuestbookId(null);
   }
 
   const remaining = tasks.filter((task) => !task.done).length;
@@ -184,13 +199,13 @@ export default function Home() {
 
         <section className="card guestbook" aria-labelledby="guestbook-title">
           <div className="section-title"><div><h2 id="guestbook-title">방명록</h2><p>방문자에게 짧은 메시지를 남겨달라고 해보세요.</p></div><span className="badge">{guestbookEntries.length}개</span></div>
-          <form className="guestbook-form" onSubmit={addGuestbookEntry}>
+          {user ? <form className="guestbook-form" onSubmit={addGuestbookEntry}>
             <label>이름<input value={guestName} onChange={(event) => setGuestName(event.target.value)} maxLength="30" placeholder="이름 또는 닉네임" required /></label>
             <label>메시지<textarea value={guestMessage} onChange={(event) => setGuestMessage(event.target.value)} maxLength="300" placeholder="따뜻한 한마디를 남겨주세요." required /></label>
             <button type="submit" disabled={savingGuestbook}>{savingGuestbook ? "남기는 중..." : "방명록 남기기"}</button>
-          </form>
+          </form> : <div className="guestbook-login"><span>방명록을 남기려면 로그인해주세요.</span><Link href="/login">로그인</Link></div>}
           {!loading && <div className="guestbook-list">
-            {guestbookEntries.length === 0 ? <div className="empty">첫 번째 방명록을 남겨보세요.</div> : guestbookEntries.map((entry) => <article className="guestbook-entry" key={entry.id}><div><strong>{entry.name}</strong><time dateTime={entry.created_at}>{formatDateTime(entry.created_at)}</time></div><p>{entry.message}</p></article>)}
+            {guestbookEntries.length === 0 ? <div className="empty">첫 번째 방명록을 남겨보세요.</div> : guestbookEntries.map((entry) => <article className="guestbook-entry" key={entry.id}><div><strong>{entry.name}</strong><time dateTime={entry.created_at}>{formatDateTime(entry.created_at)}</time></div><p>{entry.message}</p>{user?.id === entry.user_id && <button className="delete guestbook-delete" type="button" disabled={activeGuestbookId === entry.id} onClick={() => deleteGuestbookEntry(entry)}>삭제</button>}</article>)}
           </div>}
         </section>
         <footer><p>Next.js + Supabase로 만든 과제 관리 MVP</p></footer>
