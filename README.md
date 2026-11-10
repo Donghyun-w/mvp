@@ -30,3 +30,10 @@ npm run dev
 방명록을 포함한 데이터는 현재 공개 읽기·쓰기 정책으로 동작합니다. 실서비스에서는 로그인, 사용자별 과제 권한, 스팸 방지 기능을 추가하세요.
 
 과제는 이메일 로그인한 사용자에게만 보이며, `proxy.js`가 Supabase 세션 쿠키를 갱신합니다. Supabase Auth에서 이메일 인증을 켠 경우, 가입 메일의 링크를 먼저 열어야 로그인할 수 있습니다.
+
+## Google 로그인 설정
+
+1. Google Cloud Console에서 웹 애플리케이션 OAuth 클라이언트를 만들고, 승인된 JavaScript 원본에 `http://localhost:3000` 및 배포 도메인을 추가합니다.
+2. Google Cloud의 승인된 리디렉션 URI에는 Supabase Dashboard의 Google provider 화면에 표시된 `https://<project-ref>.supabase.co/auth/v1/callback`을 추가합니다.
+3. Supabase Dashboard의 Authentication → Sign In / Providers → Google에서 Google Client ID와 Client Secret을 저장하고 제공자를 활성화합니다.
+4. Authentication → URL Configuration의 Redirect URLs에 `http://localhost:3000/auth/callback`과 배포 도메인의 `/auth/callback` URL을 추가합니다.

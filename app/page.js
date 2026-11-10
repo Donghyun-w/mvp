@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
 const SUBJECTS = ["C 프로그래밍", "공학설계", "미적분학", "영어 학술 글쓰기", "시사 쟁점", "미술의 이해", "홀리램스/슬기짜기", "기타"];
@@ -27,16 +28,11 @@ export default function Home() {
   const [due, setDue] = useState("");
   const [guestName, setGuestName] = useState("");
   const [guestMessage, setGuestMessage] = useState("");
-  const [authMode, setAuthMode] = useState("login");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingTask, setSavingTask] = useState(false);
   const [savingGuestbook, setSavingGuestbook] = useState(false);
-  const [savingAuth, setSavingAuth] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   async function loadData(currentUser) {
     setLoading(true);
@@ -71,32 +67,10 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function submitAuth(event) {
-    event.preventDefault();
-    setError("");
-    setNotice("");
-    setSavingAuth(true);
-    const credentials = { email: authEmail.trim(), password: authPassword };
-    const result = authMode === "signup"
-      ? await supabase.auth.signUp(credentials)
-      : await supabase.auth.signInWithPassword(credentials);
-
-    if (result.error) {
-      setError(result.error.message);
-    } else if (authMode === "signup" && !result.data.session) {
-      setNotice("가입 확인 이메일을 보냈습니다. 이메일 인증 후 로그인해주세요.");
-    } else {
-      setAuthPassword("");
-      setNotice(authMode === "signup" ? "회원가입과 로그인이 완료되었습니다." : "로그인되었습니다.");
-    }
-    setSavingAuth(false);
-  }
-
   async function signOut() {
     setError("");
     await supabase.auth.signOut();
     setTasks([]);
-    setNotice("로그아웃되었습니다.");
   }
 
   async function addTask(event) {
@@ -181,24 +155,10 @@ export default function Home() {
             <p className="subtitle">로그인하면 나만의 과제를 저장하고 관리할 수 있습니다.</p>
           </div>
           <div className="header-actions">
-            {user ? <><p className="user-email">{user.email}</p><button className="text-button" type="button" onClick={signOut}>로그아웃</button></> : <button className="text-button" type="button" onClick={() => document.getElementById("auth-card")?.scrollIntoView({ behavior: "smooth" })}>로그인</button>}
+            {user ? <><p className="user-email">{user.email}</p><button className="text-button" type="button" onClick={signOut}>로그아웃</button></> : <div className="auth-links"><Link href="/login">로그인</Link><Link className="signup-link" href="/signup">회원가입</Link></div>}
             <div className="count"><strong>{remaining}</strong><span>남은 과제</span></div>
           </div>
         </header>
-
-        {!user && <section className="card auth-card" id="auth-card" aria-labelledby="auth-title">
-          <div className="section-title"><div><h2 id="auth-title">{authMode === "login" ? "로그인" : "이메일 회원가입"}</h2><p>내 과제는 계정별로 분리되어 저장됩니다.</p></div></div>
-          <form className="auth-form" onSubmit={submitAuth}>
-            <label>이메일<input type="email" value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} placeholder="you@example.com" required /></label>
-            <label>비밀번호<input type="password" value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} minLength="6" placeholder="6자 이상" required /></label>
-            <button type="submit" disabled={savingAuth}>{savingAuth ? "처리 중..." : authMode === "login" ? "로그인" : "회원가입"}</button>
-            <button className="text-button auth-switch" type="button" onClick={() => { setAuthMode(authMode === "login" ? "signup" : "login"); setError(""); setNotice(""); }}>
-              {authMode === "login" ? "처음이라면 회원가입" : "이미 계정이 있다면 로그인"}
-            </button>
-          </form>
-        </section>}
-
-        {notice && <div className="notice" role="status">{notice}</div>}
         {error && <div className="error" role="alert">⚠️ {error}</div>}
 
         <section className="card add-card" aria-labelledby="add-task-title">
